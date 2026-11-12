@@ -18,6 +18,7 @@ move_mode = 0
 moving_home = 0
 home = (WIDTH/2,HEIGHT/2)
 text_label = ""
+selected_dot = 0
 
 class point:
     def __init__(self, x, y, l):
@@ -28,17 +29,22 @@ class point:
     def draw(self):
         global text_surface
         if self.in_range == 0:
-            pygame.draw.circle(screen, (100, 100, 100), (round((self.x*zoom)+cam_x), round((self.y*zoom)+cam_y)), 10)        
+            pygame.draw.circle(screen, (100, 100, 100), (round((self.x*zoom)+cam_x), round((-self.y*zoom)+cam_y)), 10)        
         else:
-            pygame.draw.circle(screen, (0, 0, 0), (round((self.x*zoom)+cam_x), round((self.y*zoom)+cam_y)), 10)
+            pygame.draw.circle(screen, (0, 0, 0), (round((self.x*zoom)+cam_x), round((-self.y*zoom)+cam_y)), 10)
         text_surface = font.render(self.label, True, (0, 0, 0))
-        screen.blit(text_surface, ((self.x*zoom)+cam_x, (self.y*zoom)+cam_y-50))
+        screen.blit(text_surface, ((self.x*zoom)+cam_x, (-self.y*zoom)+cam_y-50))
     def check_in_range(self, mouse_x, mouse_y):
-        dist = ((((self.x*zoom)+cam_x)-mouse_x)**2+(((self.y*zoom)+cam_y)-mouse_y)**2)
+        dist = ((((self.x*zoom)+cam_x)-mouse_x)**2+(((-self.y*zoom)+cam_y)-mouse_y)**2)
         if dist <= 15**2:
             self.in_range = 1
+            self.draw_extra_details()
         else:
             self.in_range = 0
+    def draw_extra_details(self):
+        text_surface = font.render(f"({self.x},{self.y})", True, (0, 0, 0))
+        screen.blit(text_surface, ((self.x*zoom)+cam_x, (-self.y*zoom)+cam_y+20))     
+
 points = []
 def already_exists(x, y):
     exists = 0
@@ -80,8 +86,8 @@ def add_point():
     mouse_x, mouse_y = pygame.mouse.get_pos()
     mouse_x_id = round((mouse_x-cam_x)/zoom)
     mouse_y_id = round((mouse_y-cam_y)/zoom)
-    if already_exists(mouse_x_id, mouse_y_id) == 0:
-        points.append(point(mouse_x_id, mouse_y_id, ""))
+    if already_exists(mouse_x_id, -mouse_y_id) == 0:
+        points.append(point(mouse_x_id, -mouse_y_id, ""))
         text_label = "Point Added"
         text_alpha = 255
     else:
@@ -93,6 +99,10 @@ def draw_all_points():
 def set_new_home():
     global cam_x, cam_y, home
     home = (cam_x, cam_y)
+def all_range_check():
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+    for i in points:
+        i.check_in_range(mouse_x, mouse_y)
 async def main():
     global scroll_old_x, scroll_old_y, moving_home, text_surface, text_label, text_alpha
     running = True
@@ -118,6 +128,7 @@ async def main():
         else:
             move_home()
         draw_grid()
+        all_range_check()
         draw_all_points()
         text_surface = font.render(text_label, True, (0, 0, 0))
         text_surface.set_alpha(text_alpha)
