@@ -1,5 +1,6 @@
 import asyncio
 import pygame
+import math
 pygame.init()
 WIDTH = 1300
 HEIGHT = 750
@@ -9,7 +10,7 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 50)
 text_surface = font.render("", True, (255, 255, 255))
 text_alpha = 0
-zoom = 75
+zoom = 50
 cam_x = WIDTH/2
 cam_y = HEIGHT/2
 scroll_old_x = 0
@@ -19,6 +20,7 @@ moving_home = 0
 home = (WIDTH/2,HEIGHT/2)
 text_label = ""
 selected_dot = 0
+draw_numbers = 1
 
 class point:
     def __init__(self, x, y, l):
@@ -66,9 +68,11 @@ def move_home():
 def draw_grid():
     global cam_x, cam_y
     for i in range(0, int(WIDTH/zoom)+1):
-        pygame.draw.rect(screen, (200,200,200),((i*(zoom)-3)+(cam_x%(zoom)),0,6,HEIGHT))
+        pygame.draw.rect(screen, (175,175,175),((i*(zoom)-3)+(cam_x%(zoom)),0,6,HEIGHT))
     for i in range(0, int(HEIGHT/zoom)+1):
-        pygame.draw.rect(screen, (200,200,200),(0,(i*(zoom)-3)+(cam_y%(zoom)),WIDTH,6))
+        pygame.draw.rect(screen, (175,175,175),(0,(i*(zoom)-3)+(cam_y%(zoom)),WIDTH,6))
+    pygame.draw.rect(screen, (155,155,255),(cam_x-3,0,6,HEIGHT))
+    pygame.draw.rect(screen, (255,155,155),(0,cam_y-3,WIDTH,6))
 def scroll():
     global scroll_old_x, scroll_old_y, cam_x, cam_y
     mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -103,6 +107,21 @@ def all_range_check():
     mouse_x, mouse_y = pygame.mouse.get_pos()
     for i in points:
         i.check_in_range(mouse_x, mouse_y)
+def draw_numerals():
+    first_x = math.ceil(((0 - cam_x) / zoom) / 5) * 5
+    last_x = math.floor(((WIDTH - cam_x) / zoom) / 5) * 5
+    for x in range(first_x, last_x + 1, 5):
+        screen_x = round(x * zoom + cam_x)
+        label = font.render(str(x), True, (0, 0, 0))
+        screen.blit(label, (screen_x + 5, round(cam_y + 10)))
+    first_y = math.ceil(((cam_y - HEIGHT) / zoom) / 5) * 5
+    last_y = math.floor((cam_y / zoom) / 5) * 5
+    for y in range(first_y, last_y + 1, 5):
+        if y == 0:
+            continue
+        screen_y = round(cam_y - y * zoom)
+        label = font.render(str(y), True, (0, 0, 0))
+        screen.blit(label, (round(cam_x + 10), screen_y + 5))
 async def main():
     global scroll_old_x, scroll_old_y, moving_home, text_surface, text_label, text_alpha
     running = True
@@ -130,6 +149,7 @@ async def main():
         draw_grid()
         all_range_check()
         draw_all_points()
+        draw_numerals()
         text_surface = font.render(text_label, True, (0, 0, 0))
         text_surface.set_alpha(text_alpha)
         screen.blit(text_surface, (5,5))
