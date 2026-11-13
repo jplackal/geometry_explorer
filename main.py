@@ -26,38 +26,35 @@ in_range_of_1 = 0
 id_in_range = 0
 label = ""
 class point:
-    def __init__(self, x, y, l, i):
+    def __init__(self, x, y, l):
         self.x = x
         self.y = y
         self.label = l
         self.in_range = 0
-        self.id = i
-    def draw(self):
+    def draw(self, id):
         global text_surface, id_in_range
-        if not self.id == id_in_range:
+        if id != id_in_range:
             pygame.draw.circle(screen, (100, 100, 100), (round((self.x*zoom)+cam_x), round((-self.y*zoom)+cam_y)), 10) 
         else:
             pygame.draw.circle(screen, (0, 0, 0), (round((self.x*zoom)+cam_x), round((-self.y*zoom)+cam_y)), 10)
             self.draw_extra_details()       
         text_surface = font.render(self.label, True, (0, 0, 0))
         screen.blit(text_surface, ((self.x*zoom)+cam_x, (-self.y*zoom)+cam_y-50))
-    def check_in_range(self, mouse_x, mouse_y):
+    def check_in_range(self, mouse_x, mouse_y, id):
         global id_in_range
         dist = ((((self.x*zoom)+cam_x)-mouse_x)**2+(((-self.y*zoom)+cam_y)-mouse_y)**2)
         if dist <= 15**2:
             self.in_range = 1
-            id_in_range = self.id
+            id_in_range = id
         else:
             self.in_range = 0
     def draw_extra_details(self):
         text_surface = font.render(f"({self.x},{self.y})", True, (0, 0, 0))
         screen.blit(text_surface, ((self.x*zoom)+cam_x, (-self.y*zoom)+cam_y+20))  
-    def relabel(self):
+    def relabel(self, id):
         global label
-        if self.id == id_in_range:
+        if id == id_in_range:
             self.label = label
-
-
 points = []
 def already_exists(x, y):
     exists = 0
@@ -115,15 +112,15 @@ def add_point():
     mouse_x_id = round((mouse_x-cam_x)/zoom)
     mouse_y_id = round((mouse_y-cam_y)/zoom)
     if already_exists(mouse_x_id, -mouse_y_id) == 0:
-        points.append(point(mouse_x_id, -mouse_y_id, "", len(points)))
+        points.append(point(mouse_x_id, -mouse_y_id, ""))
         text_label = "Point Added"
         text_alpha = 255
     else:
         text_label = "Point Already Exists"
         text_alpha = 500
 def draw_all_points():
-    for point in points:
-        point.draw()
+    for i, point in enumerate(points):
+        point.draw(i)
 def set_new_home():
     global cam_x, cam_y, home
     home = (cam_x, cam_y)
@@ -132,13 +129,13 @@ def all_range_check():
     mouse_x, mouse_y = pygame.mouse.get_pos()
     in_range_of_1 = 0
     id_in_range = -1
-    for i in points:
-        i.check_in_range(mouse_x, mouse_y)
-        if i.in_range:
+    for i, point in enumerate(points):
+        point.check_in_range(mouse_x, mouse_y, i)
+        if point.in_range:
             in_range_of_1 = 1
 def all_relable():
-    for i in points:
-        i.relabel()
+    for i, point in enumerate(points):
+        point.relabel(i)
 def draw_numerals():
     x_label_y = max(0, min(round(cam_y + 10), HEIGHT - font.get_height()))
     first_x = math.ceil(((0 - cam_x) / zoom) / 5) * 5
@@ -158,6 +155,8 @@ def draw_numerals():
         screen_y = max(0, min(screen_y, HEIGHT - label.get_height()))
         y_label_x = max(0, min(round(cam_x + 10), WIDTH - label.get_width()))
         screen.blit(label, (y_label_x, screen_y))
+def delete():
+    points.pop(id_in_range)
 async def main():
     global scroll_old_x, scroll_old_y, moving_home, text_surface, text_label, text_alpha, adding_label, label
     running = True
@@ -193,6 +192,8 @@ async def main():
                     label += event.unicode
                 elif event.key == pygame.K_BACKSPACE and adding_label == 1:
                     label = label[:-1]
+                elif event.key == pygame.K_BACKSPACE and adding_label == 0 and in_range_of_1:
+                    delete()
         screen.fill((255, 255, 255))
         if moving_home == 0:
             scroll_code()
